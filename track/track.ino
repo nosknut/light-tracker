@@ -18,6 +18,8 @@ unsigned long trackTimer = 0;
 
 void setup()
 {
+    Serial.begin(115200);
+    
     pinMode(LDR_TL_PIN, INPUT);
     pinMode(LDR_TR_PIN, INPUT);
     pinMode(LDR_BL_PIN, INPUT);

@@ -3,6 +3,7 @@
 // Idle: i
 // Scan: s
 // Track: t
+// Dump Scan Map: d
 char mode = 'i';
 
 const int LDR_TL_PIN = A0;
@@ -25,11 +26,7 @@ int scanMax = 0;
 int scanMaxX = 0;
 int scanMaxY = 0;
 
-int[181][181] scanMap;
-int[181][181] scanMapTl;
-int[181][181] scanMapTr;
-int[181][181] scanMapBl;
-int[181][181] scanMapBr;
+byte scanMap[19][19];
 
 void printCommands()
 {
@@ -37,10 +34,13 @@ void printCommands()
     Serial.println("i: Idle");
     Serial.println("s: Scan");
     Serial.println("t: Track");
+    Serial.println("d: Dump Scan Map");
 }
 
 void setup()
 {
+    Serial.begin(115200);
+
     pinMode(LDR_TL_PIN, INPUT);
     pinMode(LDR_TR_PIN, INPUT);
     pinMode(LDR_BL_PIN, INPUT);
@@ -54,12 +54,12 @@ void setup()
 
 void scan()
 {
-    for (int x = 0; x <= 180; x++)
+    for (int x = 0; x <= 18; x++)
     {
-        for (int y = 0; y <= 180; y++)
+        for (int y = 0; y <= 18; y++)
         {
-            servoX.write(x);
-            servoY.write(y);
+            servoX.write(x * 10);
+            servoY.write(y * 10);
             delay(10);
 
             int tl = analogRead(LDR_TL_PIN);
@@ -67,11 +67,7 @@ void scan()
             int bl = analogRead(LDR_BL_PIN);
             int br = analogRead(LDR_BR_PIN);
 
-            scanMap[x][y] = (tl + tr + bl + br) / 4.0;
-            scanMapTl[x][y] = tl;
-            scanMapTr[x][y] = tr;
-            scanMapBl[x][y] = bl;
-            scanMapBr[x][y] = br;
+            scanMap[x][y] = map((tl + tr + bl + br) / 4, 0, 1023, 0, 255);
         }
     }
 }
@@ -82,9 +78,9 @@ void findMax()
     scanMaxX = 0;
     scanMaxY = 0;
 
-    for (int x = 0; x <= 180; x++)
+    for (int x = 0; x <= 18; x++)
     {
-        for (int y = 0; y <= 180; y++)
+        for (int y = 0; y <= 18; y++)
         {
             if (scanMap[x][y] > scanMax)
             {
@@ -102,10 +98,25 @@ void printMax()
     Serial.print("Max: ");
     Serial.print(scanMax);
     Serial.print(" at [");
-    Serial.print(maxX);
+    Serial.print(scanMaxX);
     Serial.print(", ");
-    Serial.print(maxY);
+    Serial.print(scanMaxY);
     Serial.println("]");
+}
+
+void dumpScanMap()
+{
+    Serial.println("Scan Map:");
+    Serial.print("%");
+    for (int x = 0; x <= 18; x++)
+    {
+        for (int y = 0; y <= 18; y++)
+        {
+            Serial.print(scanMap[x][y]);
+            Serial.print(",");
+        }
+    }
+    Serial.println("#");
 }
 
 void lookAtMax()
@@ -184,6 +195,10 @@ void updateCommand()
             break;
         case 'i':
             Serial.println("Idle");
+            break;
+        case 'd':
+            dumpScanMap();
+            mode = 'i';
             break;
         default:
             Serial.println("[Error]: Invalid mode " + mode);
